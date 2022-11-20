@@ -57,8 +57,13 @@ let TransactionFor = class TransactionFor {
                 dependency = this.moduleRef.get(param, { strict: false });
             }
             if (dependency instanceof typeorm_1.Repository || canBeRepository) {
-                const entity = dependency.metadata.target;
-                argument = manager.getRepository(entity);
+                if (Object.getPrototypeOf(dependency) !== typeorm_1.Repository) {
+                    argument = dependency;
+                }
+                else {
+                    const entity = dependency.metadata.target;
+                    argument = manager.getRepository(entity);
+                }
             }
             else {
                 if (!dependency) {

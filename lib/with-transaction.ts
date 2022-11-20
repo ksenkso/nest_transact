@@ -36,23 +36,32 @@ export class TransactionFor<T = any> {
     if (typeof param === 'object' && 'forwardRef' in param) {
       return this.moduleRef.get(param.forwardRef().name, { strict: false });
     }
+
     const id = typeof param === 'string' ? param : typeof param === 'function' ? param.name : undefined;
+
     if (id === undefined) {
       throw new Error(`Can't get injection token from ${param}`);
     }
+
     const isExcluded = excluded.length > 0 && excluded.some((ex) => ex.name === id);
+
     if (id === `${ModuleRef.name}`) {
       return this.moduleRef;
     }
+
     if (isExcluded) {
       /// Returns current instance of service, if it is excluded
       return this.moduleRef.get(id, { strict: false });
     }
+
     let argument: Repository<any>;
+
     if (this.cache.has(id)) {
       return this.cache.get(id);
     }
+
     const canBeRepository = id.includes('Repository');
+
     if (typeof param === 'string' || canBeRepository) {
       // Fetch the dependency
       let dependency: Repository<any> | null = null;
@@ -65,9 +74,15 @@ export class TransactionFor<T = any> {
         dependency = this.moduleRef.get(param, { strict: false });
       }
       if (dependency! instanceof Repository || canBeRepository) {
-        // If the dependency is a repository, make a new repository with the desired transaction manager.
-        const entity: any = dependency!.metadata.target;
-        argument = manager.getRepository(entity);
+        // For the repositories that don't have `@EntityRepository`
+        // or are not extended vie `.extend`
+        if (Object.getPrototypeOf(dependency) !== Repository) {
+          argument = dependency!
+        } else {
+          // If the dependency is a repository, make a new repository with the desired transaction manager.
+          const entity: any = dependency!.metadata.target;
+          argument = manager.getRepository(entity);
+        }
       } else {
         if (!dependency) {
           dependency = this.moduleRef.get(param, { strict: false });
